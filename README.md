@@ -78,23 +78,17 @@ table_settings = {
 
 ---
 
-#### Step 2 — Normalize Columns (`normalize_row`)
+#### Step 2 — Dynamic Column Mapping & Normalization (`build_col_map_from_header` & `normalize_row_with_map`)
 ```python
-# app.py: normalize_row()
-COL_MAP_14_TO_10 = [0, 1, 2, 3, 5, 7, 9, 10, 12, 13]
+# streamlit_app.py: build_col_map_from_header() & normalize_row_with_map()
 ```
 
-> **Known Quirk**: pdfplumber sometimes extracts tables with a different number of columns depending on the page layout.
+> **Dynamic Table Parsing**: `pdfplumber` may extract tables with varying column counts (e.g. 10 or 14 columns) when merged cells or split borders are present.
 
-| Page | Column Count | Reason |
-|------|-------------|--------|
-| Page 1 & 2 | 10 | Standard layout |
-| Page 3 | 14 | pdfplumber inserts `None` spacer columns when merged cells or layout changes are detected |
-
-The `normalize_row()` function handles both cases:
-- **10 columns** → used directly as-is
-- **14 columns** → only meaningful columns are selected using the `COL_MAP_14_TO_10` index map
-- **Any other count** → skipped (returns `None`)
+The parser automatically detects header titles (`NO`, `SHIFT`, `DATETIME IN`, `LOCATION IN`, `DATETIME OUT`, `LOCATION OUT`, etc.) and maps all raw sub-columns to the 10 target fields:
+- **Merged sub-columns**: Text spanning multiple raw sub-columns under a single header field is concatenated rather than dropped.
+- **Fallback**: Pre-configured sub-column mappings apply if table header rows are omitted across page breaks.
+- **Semantic post-processing (`post_process_row`)**: Corrects edge cases where clock-in location text or status labels span across multiline row overflow.
 
 ---
 
